@@ -5,6 +5,7 @@
 """
 
 from .stp import *
+from .game import *
 __all__ = [
     "array",
     "stp",
@@ -15,5 +16,10 @@ __all__ = [
     "RetrieverMatrix",
     "SwapMatrix",
     "FrontMaintainingOperator",
-    "RearMaintainingOperator"
+    "RearMaintainingOperator",
+    "LogicValue",
+    "zeros",
+    "StpMatrix",
+    "LogicMatrix",
+    "GameStructMatrix"
 ]

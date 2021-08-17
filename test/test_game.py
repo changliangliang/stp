@@ -5,7 +5,7 @@ from stp import *
 def test_game():
 
     # 策略集
-    strategy_set = Strategy.strategy_set(2)
+    strategy_set = Strategy.set(2)
 
     # 玩家
     player_1 = Player(1, strategy_set)
@@ -24,4 +24,4 @@ def test_game():
 
     # 网络演化博弈
     game = Game([player_1, player_2, player_3, player_4], graph, UpdateRule(graph, payoff_matrix), payoff_matrix)
-    assert (game.struct_matrix() == LogicMatrix(16, 16, [1, 11, 6, 16, 11, 11, 16, 16, 6, 16, 6, 16, 16, 16, 16, 16])).all()
+    assert (game.struct_matrix() == LogicMatrix(16, 16, [1, 11, 6, 16, 11, 11, 16, 16, 6, 16, 6, 16, 16, 16, 16, 16]))

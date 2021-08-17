@@ -1,5 +1,6 @@
 """
-博弈相关类
+与网络演化博弈相关类
+
 
 作者: chang
 时间: 2021/7/5
@@ -10,26 +11,21 @@ import itertools
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
-from .stp import LogicMatrix
+from .stp import LogicMatrix, array, SwapMatrix
 
 
 class Strategy(object):
     """
-    策略类
+    Strategy(num, count)
 
-    Parameters
-    ----------
-    num : int
-        策略编号，必须为正整数。
+        策略类，代表每个玩家选择的策略
 
-    Attributes
-    ----------
-    num : int
-        策略编号。
-
-    Notes
-    -----
-        策略编号从 1 开始。
+        Parameters
+        ----------
+        num : int
+            策略编号，必须为正整数。
+        count : int
+            策略总数
     """
 
     def __init__(self, num, count):
@@ -38,17 +34,21 @@ class Strategy(object):
         self.count = count
 
     @staticmethod
-    def strategy_set(n):
+    def set(n):
         """
-        获得策略集合
-        Parameters
-        ----------
-        n : 集合中的的策略个数。
+        Strategy.set(n)
 
-        Returns
-        -------
-        strategies : list of strategy.
-            策略集合。
+            获得一个由 n 个策略组成到的策略集
+
+            Parameters
+            ----------
+            n : int
+                策略集中策略个数
+
+            Returns
+            -------
+            List[Strategy]
+                策略列表
         """
         strategies = []
         for x in range(n):
@@ -56,75 +56,66 @@ class Strategy(object):
         return strategies
 
     def __str__(self):
-        return "策略:" + str(self.num)
+        return "Strategy[" + str(self.num) + "]"
 
 
 class Player(object):
     """
-    玩家类
+    Player(number, strategy_set)
 
-    Parameters
-    ----------
-    number : int
-        玩家编号。
-    strategy_set : list of strategy
-        玩家策略集。
+        玩家类
 
-    Attributes
-    ----------
+        Parameters
+        ----------
+        number : int
+            玩家编号。
+        strategy_set : list of strategy
+            玩家策略集。
 
-    number : int
-        玩家编号
-    strategy_set : list of strategy
-        玩家策略集
-    current_strategy : strategy
-        玩家当前策略.
-    next_ strategy : strategy
-        玩家下一步策略.
-    current_payoff : int
-        玩家当前收益.
-    next_payoff : int
-        玩家下一步收益
+        Attributes
+        ----------
+        number : int
+            玩家编号
+        strategy_set : list of strategy
+            玩家策略集
+        current_strategy : strategy
+            玩家当前策略.
+        next_ strategy : strategy
+            玩家下一步策略.
+        current_payoff : int
+            玩家当前收益.
+        next_payoff : int
+            玩家下一步收益
     """
 
     def __init__(self, number, strategy_set: list):
+
+        # 玩家编号和玩家策略集
+        self.number = number
         self.strategy_set = strategy_set
+
+        # 记录玩家状态
         self.current_strategy = None
         self.next_strategy = None
-        self.number = number
         self.current_payoff = 0
         self.next_payoff = 0
 
     def set_strategy(self, strategy):
         """
         设置当前策略
-        Parameters
-        ----------
-        strategy : Strategy
-            策略
         """
         self.current_strategy = strategy
 
     def get_strategy(self):
         """
         获得当前策略
-
-        Returns
-        -------
-        strategy : Strategy
-            玩家当前策略
         """
         return self.current_strategy
 
     def get_strategy_set(self):
         """
         玩家获得策略集
-
-        Returns
-        -------
-
         """
-
         return self.strategy_set
 
     def __str__(self):
@@ -133,7 +124,15 @@ class Player(object):
 
 class PayOffMatrix(np.ndarray):
     """
-    支付矩阵
+    PayOffMatrix(payoff_list)
+
+        支付矩阵
+
+    Examples
+    --------
+    >>> PayOffMatrix([1, 2, 3, 4, 5, 6, 7, 8])
+    [[(1, 2), (3, 4)]
+     [(5, 6), (7, 8)]]
     """
 
     def __new__(cls, payoff_list):
@@ -144,49 +143,24 @@ class PayOffMatrix(np.ndarray):
 
     def payoff(self, player_1: Player, player_2: Player):
         """
-        基础网路博弈收益
+        p.payoff(player_1, player_2)
 
-        Parameters
-        ----------
-        player_1 : Player
-            玩家1
-        player_2 : Player
-            玩家2
+            基础网路博弈收益
 
-        Returns
-        -------
-        int
-            玩家1和玩家2之间博弈后玩家1的收益
+            Parameters
+            ----------
+            player_1 : Player
+                玩家1
+            player_2 : Player
+                玩家2
 
+            Returns
+            -------
+            int
+                玩家1和玩家2之间博弈后玩家1的收益
         """
-
         return self[player_1.current_strategy.num - 1][player_2.current_strategy.num - 1][0]
         # TODO 策略编号从 1 开始，后续应该修改
-        # z
-
-    def all_payoff(self, player, graph):
-        """
-        玩家总收益
-        Parameters
-        ----------
-        player : Player
-            玩家
-        graph : Graph
-            图，保存着玩家与玩家之间的关系
-
-        Returns
-        -------
-        int
-            玩家总收益
-        """
-        # 获取玩家所有邻居
-        adj_players = graph.adj_notes(player)
-
-        # 计算总收益
-        payoff = 0
-        for adj_player in adj_players:
-            payoff += self.payoff(player, adj_player)
-        return payoff
 
 
 class UpdateRule(object):
@@ -194,9 +168,8 @@ class UpdateRule(object):
     最佳响应策略
     """
 
-    def __init__(self, graph, payoff_matrix: PayOffMatrix):
-        self.graph = graph
-        self.payoff_matrix = payoff_matrix
+    def __init__(self):
+        self.game = None
 
     def next_strategy(self, player):
 
@@ -208,11 +181,11 @@ class UpdateRule(object):
         next_strategy = strategy_set[0]
 
         player.set_strategy(next_strategy)
-        temp_payoff = self.payoff_matrix.all_payoff(player, self.graph)
+        temp_payoff = self.game.payoff(player)
 
         for strategy in strategy_set:
             player.set_strategy(strategy)
-            payoff = self.payoff_matrix.all_payoff(player, self.graph)
+            payoff = self.game.payoff(player)
             if payoff > temp_payoff:
                 temp_payoff = payoff
                 next_strategy = strategy
@@ -249,29 +222,34 @@ class Graph(object):
 class Game(object):
     """
     网路演化博弈
-
-    Parameters
-    ----------
-    players : List[Player]
-        玩家列表
-    graph : Graph
-        玩家关系图
-    rule : UpdateRule
-        玩家策略更新规则
-
     """
 
-    def __init__(self, players: list[Player], graph: Graph, rule, matrix: PayOffMatrix):
-        self.rule = rule
-        self.payoff_matrix = matrix
+    def __init__(self):
+        self.rule = None
+        self.matrix = None
+        self.graph = None
+
+    def set_graph(self, graph):
         self.graph = graph
-        self.players: list[Player] = players
+        graph.game = self
+
+    def set_matrix(self, matrix):
+        self.matrix = matrix
+        matrix.game = self
+
+    def set_rule(self, rule: UpdateRule):
+        self.rule = rule
+        rule.game = self
+
+    def players(self):
+        """
+        获得所有玩家
+        """
+        return self.graph.all_nodes()
 
     def payoff(self, player):
         """
-        获得指定玩家总收益
-        :param player: 指定玩家
-        :return: 总收益
+        获得某个玩家总收益
         """
 
         # 获取玩家所有邻居
@@ -280,74 +258,36 @@ class Game(object):
         # 计算总收益
         payoff = 0
         for adj_player in adj_players:
-            payoff += self.payoff_matrix.payoff(player, adj_player)
+            payoff += self.matrix.payoff(player, adj_player)
         return payoff
-
-    def update_payoff(self):
-        """
-        更新玩家当前收益
-        Returns
-        -------
-        """
-        # 更新玩家收益
-        for player in self.players:
-            payoff = self.payoff(player)
-            player.payoff = payoff
 
     def set_strategies(self, strategies: list[Strategy]):
         """
         设置博弈中所有玩家策略
-
-        Parameters
-        ----------
-        strategies
-
-        Returns
-        -------
-
         """
-
-        players = self.players
+        players = self.players()
         for x in range(len(players)):
             players[x].set_strategy(strategies[x])
 
-    def strategy(self, player):
+    def next_strategy(self, player):
         """
         获得玩家下一步的策略
-        Parameters
-        ----------
-        player
-
-        Returns
-        -------
-
         """
         return self.rule.next_strategy(player)
-
-    def update_strategies(self):
-        r = []
-        for player in self.players:
-            self.strategy(player)
-            r.append(player.next_strategy.num + 1)
-        return r
 
     def set_profile(self, profile):
         """
         设置当前局势
-        Parameters
-        ----------
-        profile : tuple[Strategy]
-            局势
         """
         for i in range(len(profile)):
-            player = self.players[i]
+            player = self.players()[i]
             player.set_strategy(profile[i])
 
     def struct_matrix_player(self, player: Player) -> LogicMatrix:
 
         # 获得所有可能的局势
         strategy_set_list = []
-        for player_ in self.players:
+        for player_ in self.players():
             strategy_set_list.append(player_.get_strategy_set())
         profiles = itertools.product(*strategy_set_list)
 
@@ -355,7 +295,7 @@ class Game(object):
         for profile in profiles:
             self.set_profile(profile)
 
-            next_strategies.append(self.strategy(player))
+            next_strategies.append(self.next_strategy(player))
         values = []
         m = player.current_strategy.count
         for strategy in next_strategies:
@@ -363,39 +303,79 @@ class Game(object):
         return LogicMatrix(m, len(values), values)
 
     def struct_matrix(self):
-        """
-        获得网络演化博弈的结构矩阵
+        matrix = array([[1]])
+        for player in self.players():
+            matrix = matrix.stp(self.struct_matrix_player(player))
+        return GameStructMatrix.of(matrix)
 
-        Returns
-        -------
-        core.stp.LogicMatrix
-            网络演化博弈的结构矩阵
-        """
 
-        # 获得所有可能的局势
-        strategy_set_list = []
-        for player in self.players:
-            strategy_set_list.append(player.get_strategy_set())
-        profiles = itertools.product(*strategy_set_list)
+class GameStructMatrix(LogicMatrix):
+    """
+    结构矩阵
+    """
 
-        # 下一步局势集合
-        next_profiles = []
-        for profile in profiles:
-            self.set_profile(profile)
+    def __new__(cls, *args, **kwargs):
 
-            next_profile = []
-            for player in self.players:
-                next_profile.append(self.strategy(player))
-            next_profiles.append(next_profile)
+        obj = super().__new__(LogicMatrix, *args, **kwargs)
+        return obj.view(GameStructMatrix)
 
+    @staticmethod
+    def of(matrix):
+        m, n = matrix.shape
         values = []
-        m = 1
-        for profile in next_profiles:
-            m = 1
-            value = 0
-            for strategy in profile:
-                m = m * strategy.count
-                value = value * strategy.count + strategy.num - 1
-            value = value + 1
-            values.append(value)
-        return LogicMatrix(m, len(values), values=values)
+        for i in range(n):
+            values.append(matrix[:, i].nonzero()[0][0] + 1)
+        matrix = matrix.view(GameStructMatrix)
+        matrix.values = values
+        return matrix
+
+    def set_ctrl_stat(self, w, z):
+        """
+        设置控制和状态的维数
+        """
+        matrix = self.stp(SwapMatrix(w, z))
+        setattr(self, "matrix", matrix)
+
+    def is_reachable(self, from_stat, to_stat):
+        """
+        判断是否能从 from_stat 到达 to_stat
+        """
+        matrix = getattr(self, "matrix", self)
+        matrix = matrix.stp(from_stat)
+        matrix = np.sum(matrix, axis=1).reshape((matrix.shape[0], 1))
+        matrix = np.logical_and(matrix, to_stat)
+        return matrix.any()
+
+    def get_reachable_set(self, stat, stats: list):
+        """
+        获得可达集
+        """
+        # 可达集
+        reachable_sets = [[stat]]
+        stats.remove(stat)
+
+        # 全局可达标志
+        global_reachable = True
+
+        # 还有状态
+        while len(stats) > 0:
+
+            if not global_reachable:
+                return None
+            global_reachable = False
+
+            to_stat = reachable_sets[-1][0]
+            for stat in reachable_sets[-1][1:]:
+                to_stat = to_stat + stat
+            reachable_set = []
+            for stat in stats[:]:
+                # 如果可达
+                if self.is_reachable(stat, to_stat):
+                    reachable_set.append(stat)
+                    stats.remove(stat)
+
+                    # 目前还是全局可达
+                    global_reachable = True
+
+            reachable_sets.append(reachable_set)
+        return reachable_sets
